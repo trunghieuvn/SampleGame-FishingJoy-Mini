@@ -1,18 +1,13 @@
+set(COCOS_STORAGE_HEADER
+    storage/local-storage/LocalStorage.h
+    )
 
-SET(STORAGE_SOURCES
-  local-storage/LocalStorage.cpp
-  )
-
-add_library(storage STATIC
-  ${STORAGE_SOURCES}
-)
-
-target_link_libraries(storage
-    sqlite3
-)
-
-set_target_properties(storage
-    PROPERTIES
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-)
+if(ANDROID)
+    set(COCOS_STORAGE_SRC
+        storage/local-storage/LocalStorage-android.cpp
+        )
+else()
+    set(COCOS_STORAGE_SRC
+        storage/local-storage/LocalStorage.cpp
+        )
+endif()

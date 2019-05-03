@@ -23,7 +23,7 @@
  */
 
 
-#import "CDAudioManager.h"
+#import "audio/mac/CDAudioManager.h"
 
 NSString * const kCDN_AudioManagerInitialised = @"kCDN_AudioManagerInitialised";
 
@@ -60,18 +60,18 @@ NSString * const kCDN_AudioManagerInitialised = @"kCDN_AudioManagerInitialised";
 }    
 
 -(void) load:(NSString*) filePath {
-    //We have alread loaded a file previously,  check if we are being asked to load the same file
+    //We have already loaded a file previously, check if we are being asked to load the same file
     if (state == kLAS_Init || ![filePath isEqualToString:audioSourceFilePath]) {
         CDLOGINFO(@"Denshion::CDLongAudioSource - Loading new audio source %@",filePath);
         //New file
         if (state != kLAS_Init) {
             [audioSourceFilePath release];//Release old file path
-            [audioSourcePlayer release];//Release old AVAudioPlayer, they can't be reused
+            [audioSourcePlayer release];//Release old CCAudioPlayer, they can't be reused
         }
         audioSourceFilePath = [filePath copy];
         NSError *error = nil;
         NSString *path = [CDUtilities fullPathFromRelativePath:audioSourceFilePath];
-        audioSourcePlayer = [(AVAudioPlayer*)[AVAudioPlayer alloc] initWithContentsOfURL:[NSURL fileURLWithPath:path] error:&error];
+        audioSourcePlayer = [(CCAudioPlayer*)[CCAudioPlayer alloc] initWithContentsOfURL:[NSURL fileURLWithPath:path] error:&error];
         if (error == nil) {
             [audioSourcePlayer prepareToPlay];
             audioSourcePlayer.delegate = self;
@@ -94,8 +94,8 @@ NSString * const kCDN_AudioManagerInitialised = @"kCDN_AudioManagerInitialised";
 
 -(void) play {
     if (enabled_) {
-        self->systemPaused = NO;
-        self->paused = NO;
+        systemPaused = NO;
+        paused = NO;
         [audioSourcePlayer play];
     } else {
         CDLOGINFO(@"Denshion::CDLongAudioSource long audio source didn't play because it is disabled");
@@ -103,23 +103,24 @@ NSString * const kCDN_AudioManagerInitialised = @"kCDN_AudioManagerInitialised";
 }    
 
 -(void) stop {
-    self->paused = NO;
+    paused = NO;
     [audioSourcePlayer stop];
 }    
 
 -(void) pause {
-    self->paused = YES;
+    paused = YES;
     [audioSourcePlayer pause];
 }    
 
 -(void) rewind {
-    self->paused = NO;
+    paused = NO;
     [audioSourcePlayer setCurrentTime:0];
+    [audioSourcePlayer play];
 }
 
 -(void) resume {
-    self->paused = NO;
-    [audioSourcePlayer play];
+    paused = NO;
+    [audioSourcePlayer resume];
 }    
 
 -(BOOL) isPlaying {
@@ -189,12 +190,12 @@ NSString * const kCDN_AudioManagerInitialised = @"kCDN_AudioManagerInitialised";
     numberOfLoops = loopCount;
 }    
 
-- (void)audioPlayerDidFinishPlaying:(AVAudioPlayer *)player successfully:(BOOL)flag {
+- (void)audioPlayerDidFinishPlaying:(CCAudioPlayer *)player successfully:(BOOL)flag {
     CDLOGINFO(@"Denshion::CDLongAudioSource - audio player finished");
 #if TARGET_IPHONE_SIMULATOR    
     CDLOGINFO(@"Denshion::CDLongAudioSource - workaround for OpenAL clobbered audio issue");
     //This is a workaround for an issue in all simulators (tested to 3.1.2).  Problem is 
-    //that OpenAL audio playback is clobbered when an AVAudioPlayer stops.  Workaround
+    //that OpenAL audio playback is clobbered when an CCAudioPlayer stops.  Workaround
     //is to keep the player playing on an endless loop with 0 volume and then when
     //it is played again reset the volume and set loop count appropriately.
     //NB: this workaround is not foolproof but it is good enough for most situations.
@@ -207,11 +208,11 @@ NSString * const kCDN_AudioManagerInitialised = @"kCDN_AudioManagerInitialised";
     }    
 }    
 
--(void)audioPlayerBeginInterruption:(AVAudioPlayer *)player {
+-(void)audioPlayerBeginInterruption:(CCAudioPlayer *)player {
     CDLOGINFO(@"Denshion::CDLongAudioSource - audio player interrupted");
 }
 
--(void)audioPlayerEndInterruption:(AVAudioPlayer *)player {
+-(void)audioPlayerEndInterruption:(CCAudioPlayer *)player {
     CDLOGINFO(@"Denshion::CDLongAudioSource - audio player resumed");
     if (self.backgroundMusic) {
         //Check if background music can play as rules may have changed during 
@@ -618,9 +619,9 @@ static BOOL configured = FALSE;
 }    
 
 - (void) applicationWillResignActive {
-    self->_resigned = YES;
+    _resigned = YES;
     
-    //Set the audio sesssion to one that allows sharing so that other audio won't be clobbered on resume
+    //Set the audio session to one that allows sharing so that other audio won't be clobbered on resume
     [self audioSessionSetCategory:AVAudioSessionCategoryAmbient];
     
     switch (_resignBehavior) {
@@ -663,7 +664,7 @@ static BOOL configured = FALSE;
 
 - (void) applicationDidBecomeActive {
     
-    if (self->_resigned) {
+    if (_resigned) {
         _resigned = NO;
         //Reset the mode incase something changed with audio while we were inactive
         [self setMode:_mode];

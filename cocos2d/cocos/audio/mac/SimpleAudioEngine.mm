@@ -1,5 +1,6 @@
 /****************************************************************************
 Copyright (c) 2010 cocos2d-x.org
+Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
 http://www.cocos2d-x.org
 
@@ -22,11 +23,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ****************************************************************************/
 
-#include "SimpleAudioEngine.h"
-#include "SimpleAudioEngine_objc.h"
+#include "audio/include/SimpleAudioEngine.h"
+#include "audio/mac/SimpleAudioEngine_objc.h"
 #include <string>
 
-#include "CCFileUtils.h"
+#include "platform/CCFileUtils.h"
 using namespace cocos2d;
 
 static void static_end()
@@ -159,7 +160,7 @@ SimpleAudioEngine* SimpleAudioEngine::getInstance()
 {
     if (! s_pEngine)
     {
-        s_pEngine = new SimpleAudioEngine();
+        s_pEngine = new (std::nothrow) SimpleAudioEngine();
     }
     
     return s_pEngine;
@@ -170,7 +171,7 @@ void SimpleAudioEngine::end()
     if (s_pEngine)
     {
         delete s_pEngine;
-        s_pEngine = NULL;
+        s_pEngine = nullptr;
     }
     
     static_end();

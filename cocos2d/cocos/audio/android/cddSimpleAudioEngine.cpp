@@ -1,6 +1,7 @@
 /****************************************************************************
 Copyright (c) 2010-2012 cocos2d-x.org
-Copyright (c) 2013-2014 Chukong Technologies Inc.
+Copyright (c) 2013-2016 Chukong Technologies Inc.
+Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
 http://www.cocos2d-x.org
 
@@ -23,23 +24,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ****************************************************************************/
 
-#include "SimpleAudioEngine.h"
-#include "jni/cddandroidAndroidJavaEngine.h"
-#include "opensl/cddandroidOpenSLEngine.h"
-#include "ccdandroidUtils.h"
+#include "audio/include/SimpleAudioEngine.h"
+#include "audio/android/jni/cddandroidAndroidJavaEngine.h"
+#include "audio/android/ccdandroidUtils.h"
 
 namespace CocosDenshion {
 
-    static SimpleAudioEngine *s_pEngine = 0;
+    static SimpleAudioEngine *s_pEngine = nullptr;
 
     SimpleAudioEngine* SimpleAudioEngine::getInstance() {
         if (! s_pEngine) {
-            // if (CocosDenshion::android::is_buggy_device()) {
-                // use the Java Audio implementation until compatibility is confirmed
-                s_pEngine = new CocosDenshion::android::AndroidJavaEngine();
-            // } else {
-            //     s_pEngine = new CocosDenshion::android::OpenSLEngine();
-            // }
+            s_pEngine = new CocosDenshion::android::AndroidJavaEngine();
         }
     
         return s_pEngine;
@@ -48,7 +43,7 @@ namespace CocosDenshion {
     void SimpleAudioEngine::end() {
         if (s_pEngine) {
             delete s_pEngine;
-            s_pEngine = NULL;
+            s_pEngine = nullptr;
         }
     }
 

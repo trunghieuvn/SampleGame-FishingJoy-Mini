@@ -1,5 +1,6 @@
 /****************************************************************************
-Copyright (c) 2013-2014 Chukong Technologies Inc.
+Copyright (c) 2013-2016 Chukong Technologies Inc.
+Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
 http://www.cocos2d-x.org
 
@@ -22,9 +23,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ****************************************************************************/
 
-#include "cocostudio/CCDatas.h"
-#include "cocostudio/CCUtilMath.h"
-#include "cocostudio/CCTransformHelp.h"
+#include "editor-support/cocostudio/CCDatas.h"
+#include "editor-support/cocostudio/CCUtilMath.h"
+#include "editor-support/cocostudio/CCTransformHelp.h"
 
 using namespace cocos2d;
 
@@ -142,7 +143,7 @@ Color4B BaseData::getColor()
     return Color4B(r, g, b, a);
 }
 
-const std::string DisplayData::changeDisplayToTexture(const std::string& displayName)
+std::string DisplayData::changeDisplayToTexture(const std::string& displayName)
 {
     // remove .xxx
     std::string textureName = displayName;
@@ -251,10 +252,10 @@ FrameData::FrameData(void)
     , duration(1)
     , tweenEasing(cocos2d::tweenfunc::Linear)
     , easingParamNumber(0)
-    , easingParams(NULL)
+    , easingParams(nullptr)
     , isTween(true)
     , displayIndex(0)
-    , blendFunc(BlendFunc::ALPHA_NON_PREMULTIPLIED)
+    , blendFunc(BlendFunc::ALPHA_PREMULTIPLIED)
 
     , strEvent("")
     , strMovement("")
@@ -283,7 +284,7 @@ void FrameData::copy(const BaseData *baseData)
         CC_SAFE_DELETE(easingParams);
         if (easingParamNumber != 0)
         {
-            easingParams = new float[easingParamNumber];
+            easingParams = new (std::nothrow) float[easingParamNumber];
             for (int i = 0; i<easingParamNumber; i++)
             {
                 easingParams[i] = frameData->easingParams[i];
@@ -291,6 +292,7 @@ void FrameData::copy(const BaseData *baseData)
         }
 
         blendFunc = frameData->blendFunc;
+        isTween = frameData->isTween;
     }
 }
 
@@ -389,7 +391,7 @@ bool ContourData::init()
     return true;
 }
 
-void ContourData::addVertex(Point &vertex)
+void ContourData::addVertex(Vec2 &vertex)
 {
     vertexList.push_back(vertex);
 }

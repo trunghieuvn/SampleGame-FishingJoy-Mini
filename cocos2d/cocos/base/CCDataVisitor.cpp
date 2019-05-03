@@ -1,5 +1,6 @@
 /****************************************************************************
- Copyright (c) 2013-2014 Chukong Technologies Inc.
+ Copyright (c) 2013-2016 Chukong Technologies Inc.
+ Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
  http://www.cocos2d-x.org
 
@@ -22,15 +23,15 @@
  THE SOFTWARE.
  ****************************************************************************/
 
-#include "CCRef.h"
-#include "CCBool.h"
-#include "CCInteger.h"
-#include "CCFloat.h"
-#include "CCDouble.h"
-#include "CCString.h"
-#include "CCArray.h"
-#include "CCDictionary.h"
-#include "CCSet.h"
+#include "base/CCRef.h"
+#include "deprecated/CCBool.h"
+#include "deprecated/CCInteger.h"
+#include "deprecated/CCFloat.h"
+#include "deprecated/CCDouble.h"
+#include "deprecated/CCString.h"
+#include "deprecated/CCArray.h"
+#include "deprecated/CCDictionary.h"
+#include "deprecated/CCSet.h"
 
 NS_CC_BEGIN
 
@@ -196,11 +197,9 @@ void PrettyPrinter::visit(const __Set *p)
     
     setIndentLevel(_indentLevel+1);
 
-    int i = 0;
     __Set* tmp = const_cast<__Set*>(p);
-    __SetIterator it = tmp->begin();
 
-    for (; it != tmp->end(); ++it, ++i) {
+    for (int i = 0, tmp_size = tmp->count(); i < tmp_size; ++i) {
         if (i > 0) {
             _result += "\n";
         }

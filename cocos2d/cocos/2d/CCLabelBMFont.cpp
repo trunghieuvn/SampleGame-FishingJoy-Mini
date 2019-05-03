@@ -2,7 +2,8 @@
 Copyright (c) 2008-2010 Ricardo Quesada
 Copyright (c) 2010-2012 cocos2d-x.org
 Copyright (c) 2011      Zynga Inc.
-Copyright (c) 2013-2014 Chukong Technologies Inc.
+Copyright (c) 2013-2016 Chukong Technologies Inc.
+Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
 http://www.cocos2d-x.org
 
@@ -31,19 +32,30 @@ http://slick.cokeandcode.com/demos/hiero.jnlp (Free, Java)
 http://www.angelcode.com/products/bmfont/ (Free, Windows only)
 
 ****************************************************************************/
-#include "CCLabelBMFont.h"
-#include "CCDrawingPrimitives.h"
-#include "CCString.h"
-#include "CCSprite.h"
+#include "2d/CCLabelBMFont.h"
+#include "base/ccUTF8.h"
+#include "2d/CCSprite.h"
+
+#if CC_LABELBMFONT_DEBUG_DRAW
+#include "renderer/CCRenderer.h"
+#include "base/CCDirector.h"
+#endif
 
 using namespace std;
+
+#if defined(__GNUC__) && ((__GNUC__ >= 4) || ((__GNUC__ == 3) && (__GNUC_MINOR__ >= 1)))
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#elif _MSC_VER >= 1400 //vs 2005 or higher
+#pragma warning (push)
+#pragma warning (disable: 4996)
+#endif
 
 NS_CC_BEGIN
 
 LabelBMFont * LabelBMFont::create()
 {
-    LabelBMFont * pRet = new LabelBMFont();
-    if (pRet && pRet->init())
+    LabelBMFont * pRet = new (std::nothrow) LabelBMFont();
+    if (pRet)
     {
         pRet->autorelease();
         return pRet;
@@ -53,9 +65,9 @@ LabelBMFont * LabelBMFont::create()
 }
 
 //LabelBMFont - Creation & Init
-LabelBMFont *LabelBMFont::create(const std::string& str, const std::string& fntFile, float width /* = 0 */, TextHAlignment alignment /* = TextHAlignment::LEFT */,const Point& imageOffset /* = Point::ZERO */)
+LabelBMFont *LabelBMFont::create(const std::string& str, const std::string& fntFile, float width /* = 0 */, TextHAlignment alignment /* = TextHAlignment::LEFT */,const Vec2& imageOffset /* = Vec2::ZERO */)
 {
-    LabelBMFont *ret = new LabelBMFont();
+    LabelBMFont *ret = new (std::nothrow) LabelBMFont();
     if(ret && ret->initWithString(str, fntFile, width, alignment,imageOffset))
     {
         ret->autorelease();
@@ -65,15 +77,13 @@ LabelBMFont *LabelBMFont::create(const std::string& str, const std::string& fntF
     return nullptr;
 }
 
-bool LabelBMFont::initWithString(const std::string& str, const std::string& fntFile, float width /* = 0 */, TextHAlignment alignment /* = TextHAlignment::LEFT */,const Point& imageOffset /* = Point::ZERO */)
+bool LabelBMFont::initWithString(const std::string& str, const std::string& fntFile, float width /* = 0 */, TextHAlignment alignment /* = TextHAlignment::LEFT */,const Vec2& imageOffset /* = Vec2::ZERO */)
 {
     if (_label->setBMFontFilePath(fntFile,imageOffset))
     {
         _fntFile = fntFile;
         _label->setMaxLineWidth(width);
         _label->setAlignment(alignment);
-        _label->setAnchorPoint(Point::ANCHOR_BOTTOM_LEFT);
-        _label->setPosition(Point::ZERO);
         _label->setString(str);
         this->setContentSize(_label->getContentSize());
         return true;
@@ -85,9 +95,15 @@ bool LabelBMFont::initWithString(const std::string& str, const std::string& fntF
 LabelBMFont::LabelBMFont()
 {
     _label = Label::create();
+    _label->setAnchorPoint(Vec2::ANCHOR_BOTTOM_LEFT);
     this->addChild(_label);
-    this->setAnchorPoint(Point::ANCHOR_MIDDLE);
+    this->setAnchorPoint(Vec2::ANCHOR_MIDDLE);
     _cascadeOpacityEnabled = true;
+    
+#if CC_LABELBMFONT_DEBUG_DRAW
+    _debugDrawNode = DrawNode::create();
+    addChild(_debugDrawNode);
+#endif
 }
 
 LabelBMFont::~LabelBMFont()
@@ -141,7 +157,7 @@ void LabelBMFont::setLineBreakWithoutSpace( bool breakWithoutSpace )
 }
 
 // LabelBMFont - FntFile
-void LabelBMFont::setFntFile(const std::string& fntFile, const Point& imageOffset /* = Point::ZERO */)
+void LabelBMFont::setFntFile(const std::string& fntFile, const Vec2& imageOffset /* = Vec2::ZERO */)
 {
     if (_fntFile.compare(fntFile) != 0)
     {
@@ -170,23 +186,53 @@ const BlendFunc &LabelBMFont::getBlendFunc() const
     return _label->getBlendFunc();
 }
 
-Node* LabelBMFont::getChildByTag(int tag)
+Node* LabelBMFont::getChildByTag(int tag) const
 {
     return _label->getLetter(tag);
 }
 
-//LabelBMFont - Debug draw
-#if CC_LABELBMFONT_DEBUG_DRAW
-void LabelBMFont::draw()
+Sprite* LabelBMFont::getLetter(int ID)
 {
-    const Size& s = this->getContentSize();
-    Point vertices[4]={
-        Point(0,0),Point(s.width,0),
-        Point(s.width,s.height),Point(0,s.height),
-    };
-    ccDrawPoly(vertices, 4, true);
+    return _label->getLetter(ID);
 }
 
-#endif // CC_LABELBMFONT_DEBUG_DRAW
+void LabelBMFont::setColor(const Color3B& color)
+{
+    _label->setColor(color);
+}
+
+const Size& LabelBMFont::getContentSize() const
+{
+    const_cast<LabelBMFont*>(this)->setContentSize(_label->getContentSize());
+    return _contentSize;
+}
+
+Rect LabelBMFont::getBoundingBox() const
+{
+    return Node::getBoundingBox();
+}
+#if CC_LABELBMFONT_DEBUG_DRAW
+void LabelBMFont::draw(Renderer *renderer, const Mat4 &transform, uint32_t flags)
+{
+    Node::draw(renderer, transform, _transformUpdated);
+
+    _debugDrawNode->clear();
+    auto size = getContentSize();
+    Vec2 vertices[4]=
+    {
+        Vec2::ZERO,
+        Vec2(size.width, 0),
+        Vec2(size.width, size.height),
+        Vec2(0, size.height)
+    };
+    _debugDrawNode->drawPoly(vertices, 4, true, Color4F(1.0, 1.0, 1.0, 1.0));
+}
+#endif
+
+#if defined(__GNUC__) && ((__GNUC__ >= 4) || ((__GNUC__ == 3) && (__GNUC_MINOR__ >= 1)))
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
+#elif _MSC_VER >= 1400 //vs 2005 or higher
+#pragma warning (pop)
+#endif
 
 NS_CC_END

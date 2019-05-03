@@ -1,7 +1,8 @@
 /****************************************************************************
 Copyright (c) 2008-2010 Ricardo Quesada
 Copyright (c) 2010-2012 cocos2d-x.org
-Copyright (c) 2013-2014 Chukong Technologies Inc.
+Copyright (c) 2013-2016 Chukong Technologies Inc.
+Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
  
 http://www.cocos2d-x.org
 
@@ -23,23 +24,31 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ****************************************************************************/
+
 #ifndef __CCLABELTTF_H__
 #define __CCLABELTTF_H__
 
-#include "CCNode.h"
+/// @cond DO_NOT_SHOW
+
+#include "2d/CCNode.h"
 
 NS_CC_BEGIN
+
+#if defined(__GNUC__) && ((__GNUC__ >= 4) || ((__GNUC__ == 3) && (__GNUC_MINOR__ >= 1)))
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#elif _MSC_VER >= 1400 //vs 2005 or higher
+#pragma warning (push)
+#pragma warning (disable: 4996)
+#endif
+
+/// @cond
 
 class Label;
 
 /**
- * @addtogroup GUI
- * @{
- * @addtogroup label
+ * @addtogroup _2d
  * @{
  */
-
-
 
 /** @brief LabelTTF is a subclass of TextureNode that knows how to render text labels
  *
@@ -56,7 +65,7 @@ class Label;
  * @endcode
  *
  */
-class CC_DLL LabelTTF : public Node, public LabelProtocol, public BlendProtocol
+class CC_DLL CC_DEPRECATED_ATTRIBUTE LabelTTF : public Node, public LabelProtocol, public BlendProtocol
 {
 public:
     /**
@@ -77,7 +86,7 @@ public:
                              TextVAlignment vAlignment = TextVAlignment::TOP);
     
     
-    /** Create a lable with string and a font definition*/
+    /** Create a label with string and a font definition*/
     static LabelTTF * createWithFontDefinition(const std::string& string, FontDefinition &textDefinition);
     
     /** initializes the LabelTTF with a font name, alignment, dimension and font size */
@@ -92,7 +101,7 @@ public:
     void setTextDefinition(const FontDefinition& theDefinition);
     
     /** get the text definition used by this label */
-    const FontDefinition& getTextDefinition() const;
+    const FontDefinition& getTextDefinition();
     
     
     
@@ -143,24 +152,32 @@ public:
     virtual void setFlippedX(bool flippedX);
     virtual void setFlippedY(bool flippedY);
 
+    virtual Rect getBoundingBox() const override;
+
     /**
      * @js NA
      * @lua NA
      */
     virtual std::string getDescription() const override;
-    virtual void visit(Renderer *renderer, const kmMat4 &parentTransform, bool parentTransformUpdated) override;
+    virtual void visit(Renderer *renderer, const Mat4 &parentTransform, uint32_t parentFlags) override;
     virtual const Size& getContentSize() const override;
 protected:
     Label*    _renderLabel;
     bool _contentDirty;
+    FontDefinition _fontDef;
 };
 
 
-// end of GUI group
+// end of group
 /// @}
-/// @}
+#if defined(__GNUC__) && ((__GNUC__ >= 4) || ((__GNUC__ == 3) && (__GNUC_MINOR__ >= 1)))
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
+#elif _MSC_VER >= 1400 //vs 2005 or higher
+#pragma warning (pop)
+#endif
 
 NS_CC_END
 
+/// @endcond
 #endif //__CCLABEL_H__
 

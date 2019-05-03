@@ -5,6 +5,8 @@
  * Copyright 2012 Yannick Loriot. All rights reserved.
  * http://yannickloriot.com
  * 
+ * Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
+ * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -29,10 +31,10 @@
 #define __CCCONTROLSWITCH_H__
 
 #include "CCControl.h"
-
+#include "extensions/ExtensionExport.h"
 
 namespace cocos2d { class Sprite; }
-namespace cocos2d { class LabelTTF; }
+namespace cocos2d { class Label; }
 
 NS_CC_EXT_BEGIN
 
@@ -46,15 +48,16 @@ class ControlSwitchSprite;
  */
 
 /** @class ControlSwitch Switch control for Cocos2D. */
-class ControlSwitch : public Control
+class CC_EX_DLL ControlSwitch : public Control
 {
 public:
     /** Creates a switch with a mask sprite, on/off sprites for on/off states, a thumb sprite and an on/off labels. */
-    static ControlSwitch* create(Sprite *maskSprite, Sprite * onSprite, Sprite * offSprite, Sprite * thumbSprite, LabelTTF* onLabel, LabelTTF* offLabel);
+    static ControlSwitch* create(Sprite *maskSprite, Sprite * onSprite, Sprite * offSprite, Sprite * thumbSprite, Label* onLabel, Label* offLabel);
     /** Creates a switch with a mask sprite, on/off sprites for on/off states and a thumb sprite. */
     static ControlSwitch* create(Sprite *maskSprite, Sprite * onSprite, Sprite * offSprite, Sprite * thumbSprite);
     /**
      * @js ctor
+     * @lua new
      */
     ControlSwitch();
     /**
@@ -66,7 +69,7 @@ public:
     /** Initializes a switch with a mask sprite, on/off sprites for on/off states and a thumb sprite. */
     bool initWithMaskSprite(Sprite *maskSprite, Sprite * onSprite, Sprite * offSprite, Sprite * thumbSprite);
     /** Initializes a switch with a mask sprite, on/off sprites for on/off states, a thumb sprite and an on/off labels. */
-    bool initWithMaskSprite(Sprite *maskSprite, Sprite * onSprite, Sprite * offSprite, Sprite * thumbSprite, LabelTTF* onLabel, LabelTTF* offLabel);
+    bool initWithMaskSprite(Sprite *maskSprite, Sprite * onSprite, Sprite * offSprite, Sprite * thumbSprite, Label* onLabel, Label* offLabel);
 
     /**
      * Set the state of the switch to On or Off, optionally animating the transition.
@@ -80,9 +83,9 @@ public:
     void setOn(bool isOn);
     bool isOn(void) const { return _on; }
     bool hasMoved() const { return _moved; }
-    virtual void setEnabled(bool enabled);
+    virtual void setEnabled(bool enabled) override;
 
-    Point locationFromTouch(Touch* touch);
+    Vec2 locationFromTouch(Touch* touch);
 
     // Overrides
     virtual bool onTouchBegan(Touch *pTouch, Event *pEvent) override;

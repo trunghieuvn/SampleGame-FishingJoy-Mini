@@ -2,7 +2,8 @@
 Copyright (c) 2008-2010 Ricardo Quesada
 Copyright (c) 2010-2012 cocos2d-x.org
 Copyright (c) 2011      Zynga Inc.
-Copyright (c) 2013-2014 Chukong Technologies Inc.
+Copyright (c) 2013-2016 Chukong Technologies Inc.
+Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
 http://www.cocos2d-x.org
 
@@ -34,10 +35,22 @@ Use any of these editors to generate BMFonts:
 #ifndef __CCBITMAP_FONT_ATLAS_H__
 #define __CCBITMAP_FONT_ATLAS_H__
 
-#include "CCLabel.h"
+/// @cond DO_NOT_SHOW
+
+#include "2d/CCLabel.h"
+#if CC_LABELBMFONT_DEBUG_DRAW
+#include "renderer/CCCustomCommand.h"
+#include "2d/CCDrawNode.h"
+#endif
 
 NS_CC_BEGIN
 
+#if defined(__GNUC__) && ((__GNUC__ >= 4) || ((__GNUC__ == 3) && (__GNUC_MINOR__ >= 1)))
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#elif _MSC_VER >= 1400 //vs 2005 or higher
+#pragma warning (push)
+#pragma warning (disable: 4996)
+#endif
 /** @brief LabelBMFont is a subclass of SpriteBatchNode.
 
 Features:
@@ -68,7 +81,7 @@ http://www.angelcode.com/products/bmfont/ (Free, Windows only)
 @since v0.8
 */
 
-class CC_DLL LabelBMFont : public Node, public LabelProtocol, public BlendProtocol
+class CC_DLL CC_DEPRECATED_ATTRIBUTE LabelBMFont : public Node, public LabelProtocol, public BlendProtocol
 {
 public:
     /**
@@ -82,14 +95,14 @@ public:
     virtual ~LabelBMFont();
 
     /** creates a bitmap font atlas with an initial string and the FNT file */
-    static LabelBMFont * create(const std::string& str, const std::string& fntFile, float width = 0, TextHAlignment alignment = TextHAlignment::LEFT,const Point& imageOffset = Point::ZERO);
+    static LabelBMFont * create(const std::string& str, const std::string& fntFile, float width = 0, TextHAlignment alignment = TextHAlignment::LEFT,const Vec2& imageOffset = Vec2::ZERO);
 
     /** Creates an label.
      */
     static LabelBMFont * create();
 
     /** init a bitmap font atlas with an initial string and the FNT file */
-    bool initWithString(const std::string& str, const std::string& fntFile, float width = 0, TextHAlignment alignment = TextHAlignment::LEFT,const Point& imageOffset = Point::ZERO);
+    bool initWithString(const std::string& str, const std::string& fntFile, float width = 0, TextHAlignment alignment = TextHAlignment::LEFT,const Vec2& imageOffset = Vec2::ZERO);
 
     // super method
     virtual void setString(const std::string& newString) override;
@@ -101,27 +114,33 @@ public:
     virtual void setLineBreakWithoutSpace(bool breakWithoutSpace);
     
     // RGBAProtocol 
-    virtual bool isOpacityModifyRGB() const;
-    virtual void setOpacityModifyRGB(bool isOpacityModifyRGB);
+    virtual bool isOpacityModifyRGB() const override;
+    virtual void setOpacityModifyRGB(bool isOpacityModifyRGB) override;
 
-    void setFntFile(const std::string& fntFile, const Point& imageOffset = Point::ZERO);
+    void setFntFile(const std::string& fntFile, const Vec2& imageOffset = Vec2::ZERO);
     const std::string& getFntFile() const;
 
     virtual void setBlendFunc(const BlendFunc &blendFunc) override;
 
     virtual const BlendFunc &getBlendFunc() const override;
 
-    virtual Sprite * getLetter(int ID) { return _label->getLetter(ID);}
-    virtual Node * getChildByTag(int tag) override;
+    virtual Sprite * getLetter(int ID);
+    virtual Node * getChildByTag(int tag) const override;
 
-    virtual void setColor(const Color3B& color) override { _label->setColor(color);}
+    virtual void setColor(const Color3B& color) override;
+
+    virtual const Size& getContentSize() const override;
+    virtual Rect getBoundingBox() const override;
 
     virtual std::string getDescription() const override;
-
 #if CC_LABELBMFONT_DEBUG_DRAW
-    virtual void draw();
-#endif // CC_LABELBMFONT_DEBUG_DRAW
+    virtual void draw(Renderer *renderer, const Mat4 &transform, uint32_t flags) override;
+#endif
+
 private:
+#if CC_LABELBMFONT_DEBUG_DRAW
+    DrawNode *_debugDrawNode;
+#endif
     
     // name of fntFile
     std::string _fntFile;
@@ -133,7 +152,13 @@ private:
 // end of GUI group
 /// @}
 /// @}
+#if defined(__GNUC__) && ((__GNUC__ >= 4) || ((__GNUC__ == 3) && (__GNUC_MINOR__ >= 1)))
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
+#elif _MSC_VER >= 1400 //vs 2005 or higher
+#pragma warning (pop)
+#endif
 
 NS_CC_END
 
+/// @endcond
 #endif //__CCBITMAP_FONT_ATLAS_H__

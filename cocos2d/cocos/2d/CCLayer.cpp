@@ -2,7 +2,8 @@
 Copyright (c) 2008-2010 Ricardo Quesada
 Copyright (c) 2010-2012 cocos2d-x.org
 Copyright (c) 2011      Zynga Inc.
-Copyright (c) 2013-2014 Chukong Technologies Inc.
+Copyright (c) 2013-2016 Chukong Technologies Inc.
+Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
  
 http://www.cocos2d-x.org
 
@@ -26,27 +27,25 @@ THE SOFTWARE.
 ****************************************************************************/
 
 #include <stdarg.h>
-#include "CCLayer.h"
-#include "CCDirector.h"
-#include "CCScriptSupport.h"
-#include "CCShaderCache.h"
-#include "CCGLProgram.h"
-#include "ccGLStateCache.h"
-#include "TransformUtils.h"
-// extern
-#include "kazmath/GL/matrix.h"
-#include "CCEventDispatcher.h"
-#include "CCEventListenerTouch.h"
-#include "CCEventTouch.h"
-#include "CCEventKeyboard.h"
-#include "CCEventListenerKeyboard.h"
-#include "CCEventAcceleration.h"
-#include "CCEventListenerAcceleration.h"
+#include "2d/CCLayer.h"
+#include "base/CCScriptSupport.h"
 #include "platform/CCDevice.h"
-#include "CCScene.h"
-#include "renderer/CCCustomCommand.h"
 #include "renderer/CCRenderer.h"
-#include "CCString.h"
+#include "renderer/ccGLStateCache.h"
+#include "renderer/CCGLProgramState.h"
+#include "base/CCDirector.h"
+#include "base/CCEventDispatcher.h"
+#include "base/CCEventListenerTouch.h"
+#include "base/CCEventTouch.h"
+#include "base/CCEventKeyboard.h"
+#include "base/CCEventListenerKeyboard.h"
+#include "base/CCEventAcceleration.h"
+#include "base/CCEventListenerAcceleration.h"
+#include "base/ccUTF8.h"
+
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_MAC)
+#include "platform/desktop/CCGLViewImpl-desktop.h"
+#endif
 
 NS_CC_BEGIN
 
@@ -62,7 +61,7 @@ Layer::Layer()
 , _swallowsTouches(true)
 {
     _ignoreAnchorPointForPosition = true;
-    setAnchorPoint(Point(0.5f, 0.5f));
+    setAnchorPoint(Vec2(0.5f, 0.5f));
 }
 
 Layer::~Layer()
@@ -72,21 +71,14 @@ Layer::~Layer()
 
 bool Layer::init()
 {
-    bool ret = false;
-    do 
-    {        
-        Director * director;
-        CC_BREAK_IF(!(director = Director::getInstance()));
-        this->setContentSize(director->getWinSize());
-        // success
-        ret = true;
-    } while(0);
-    return ret;
+    Director * director = Director::getInstance();
+    setContentSize(director->getWinSize());
+    return true;
 }
 
 Layer *Layer::create()
 {
-    Layer *ret = new Layer();
+    Layer *ret = new (std::nothrow) Layer();
     if (ret && ret->init())
     {
         ret->autorelease();
@@ -108,8 +100,11 @@ int Layer::executeScriptTouchHandler(EventTouch::EventCode eventType, Touch* tou
         ScriptEvent scriptEvent(kTouchEvent, &data);
         return ScriptEngineManager::getInstance()->getScriptEngine()->sendEvent(&scriptEvent);
     }
+#else
+    CC_UNUSED_PARAM(eventType);
+    CC_UNUSED_PARAM(touch);
+    CC_UNUSED_PARAM(event);
 #endif
-    //can not reach it
     return 0;
 }
 
@@ -122,9 +117,22 @@ int Layer::executeScriptTouchesHandler(EventTouch::EventCode eventType, const st
         ScriptEvent scriptEvent(kTouchesEvent, &data);
         return ScriptEngineManager::getInstance()->getScriptEngine()->sendEvent(&scriptEvent);
     }
+#else
+    CC_UNUSED_PARAM(eventType);
+    CC_UNUSED_PARAM(touches);
+    CC_UNUSED_PARAM(event);
 #endif
     return 0;
 }
+
+bool Layer::ccTouchBegan(Touch* /*pTouch*/, Event* /*pEvent*/) {return false;};
+void Layer::ccTouchMoved(Touch* /*pTouch*/, Event* /*pEvent*/) {}
+void Layer::ccTouchEnded(Touch* /*pTouch*/, Event* /*pEvent*/) {}
+void Layer::ccTouchCancelled(Touch* /*pTouch*/, Event* /*pEvent*/) {}
+void Layer::ccTouchesBegan(__Set* /*pTouches*/, Event* /*pEvent*/) {}
+void Layer::ccTouchesMoved(__Set* /*pTouches*/, Event* /*pEvent*/) {}
+void Layer::ccTouchesEnded(__Set* /*pTouches*/, Event* /*pEvent*/) {}
+void Layer::ccTouchesCancelled(__Set* /*pTouches*/, Event* /*pEvent*/) {}
 
 #if defined(__GNUC__) && ((__GNUC__ >= 4) || ((__GNUC__ == 3) && (__GNUC_MINOR__ >= 1)))
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -259,10 +267,8 @@ void Layer::setAccelerometerInterval(double interval) {
     }
 }
 
-void Layer::onAcceleration(Acceleration* acc, Event* unused_event)
+void Layer::onAcceleration(Acceleration* acc, Event* /*unused_event*/)
 {
-    CC_UNUSED_PARAM(acc);
-    CC_UNUSED_PARAM(unused_event);
 #if CC_ENABLE_SCRIPT_BINDING
     if(kScriptTypeNone != _scriptType)
     {
@@ -270,18 +276,17 @@ void Layer::onAcceleration(Acceleration* acc, Event* unused_event)
         ScriptEvent event(kAccelerometerEvent,&data);
         ScriptEngineManager::getInstance()->getScriptEngine()->sendEvent(&event);
     }
+#else
+    CC_UNUSED_PARAM(acc);
 #endif
 }
 
-void Layer::onKeyPressed(EventKeyboard::KeyCode keyCode, Event* unused_event)
+void Layer::onKeyPressed(EventKeyboard::KeyCode /*keyCode*/, Event* /*unused_event*/)
 {
-    CC_UNUSED_PARAM(keyCode);
-    CC_UNUSED_PARAM(unused_event);
 }
 
-void Layer::onKeyReleased(EventKeyboard::KeyCode keyCode, Event* unused_event)
+void Layer::onKeyReleased(EventKeyboard::KeyCode keyCode, Event* /*unused_event*/)
 {
-    CC_UNUSED_PARAM(unused_event);
 #if CC_ENABLE_SCRIPT_BINDING
     if(kScriptTypeNone != _scriptType)
     {
@@ -289,6 +294,8 @@ void Layer::onKeyReleased(EventKeyboard::KeyCode keyCode, Event* unused_event)
         ScriptEvent event(kKeypadEvent,&data);
         ScriptEngineManager::getInstance()->getScriptEngine()->sendEvent(&event);
     }
+#else
+    CC_UNUSED_PARAM(keyCode);
 #endif
 }
 
@@ -332,8 +339,10 @@ bool Layer::onTouchBegan(Touch *touch, Event *event)
     {
         return executeScriptTouchHandler(EventTouch::EventCode::BEGAN, touch, event) == 0 ? false : true;
     }
-#endif
+#else
+    CC_UNUSED_PARAM(touch);
     CC_UNUSED_PARAM(event);
+#endif
     CCASSERT(false, "Layer#ccTouchBegan override me");
     return true;
 }
@@ -346,9 +355,10 @@ void Layer::onTouchMoved(Touch *touch, Event *event)
         executeScriptTouchHandler(EventTouch::EventCode::MOVED, touch, event);
         return;
     }
-#endif
-    
+#else
+    CC_UNUSED_PARAM(touch);
     CC_UNUSED_PARAM(event);
+#endif
 }
 
 void Layer::onTouchEnded(Touch *touch, Event *event)
@@ -359,9 +369,10 @@ void Layer::onTouchEnded(Touch *touch, Event *event)
         executeScriptTouchHandler(EventTouch::EventCode::ENDED, touch, event);
         return;
     }
-#endif
-    
+#else
+    CC_UNUSED_PARAM(touch);
     CC_UNUSED_PARAM(event);
+#endif
 }
 
 void Layer::onTouchCancelled(Touch *touch, Event *event)
@@ -372,9 +383,10 @@ void Layer::onTouchCancelled(Touch *touch, Event *event)
         executeScriptTouchHandler(EventTouch::EventCode::CANCELLED, touch, event);
         return;
     }
-#endif
-    
+#else
+    CC_UNUSED_PARAM(touch);
     CC_UNUSED_PARAM(event);
+#endif
 }    
 
 void Layer::onTouchesBegan(const std::vector<Touch*>& touches, Event *event)
@@ -385,8 +397,10 @@ void Layer::onTouchesBegan(const std::vector<Touch*>& touches, Event *event)
         executeScriptTouchesHandler(EventTouch::EventCode::BEGAN, touches, event);
         return;
     }
-#endif
+#else
+    CC_UNUSED_PARAM(touches);
     CC_UNUSED_PARAM(event);
+#endif
 }
 
 void Layer::onTouchesMoved(const std::vector<Touch*>& touches, Event *event)
@@ -397,9 +411,10 @@ void Layer::onTouchesMoved(const std::vector<Touch*>& touches, Event *event)
         executeScriptTouchesHandler(EventTouch::EventCode::MOVED, touches, event);
         return;
     }
-#endif
-    
+#else
+    CC_UNUSED_PARAM(touches);
     CC_UNUSED_PARAM(event);
+#endif
 }
 
 void Layer::onTouchesEnded(const std::vector<Touch*>& touches, Event *event)
@@ -410,8 +425,10 @@ void Layer::onTouchesEnded(const std::vector<Touch*>& touches, Event *event)
         executeScriptTouchesHandler(EventTouch::EventCode::ENDED, touches, event);
         return;
     }
-#endif
+#else
+    CC_UNUSED_PARAM(touches);
     CC_UNUSED_PARAM(event);
+#endif
 }
 
 void Layer::onTouchesCancelled(const std::vector<Touch*>& touches, Event *event)
@@ -422,8 +439,10 @@ void Layer::onTouchesCancelled(const std::vector<Touch*>& touches, Event *event)
         executeScriptTouchesHandler(EventTouch::EventCode::CANCELLED, touches, event);
         return;
     }
-#endif
+#else
+    CC_UNUSED_PARAM(touches);
     CC_UNUSED_PARAM(event);
+#endif
 }
 
 std::string Layer::getDescription() const
@@ -467,7 +486,7 @@ void LayerColor::setBlendFunc(const BlendFunc &var)
 
 LayerColor* LayerColor::create()
 {
-    LayerColor* ret = new LayerColor();
+    LayerColor* ret = new (std::nothrow) LayerColor();
     if (ret && ret->init())
     {
         ret->autorelease();
@@ -481,7 +500,7 @@ LayerColor* LayerColor::create()
 
 LayerColor * LayerColor::create(const Color4B& color, GLfloat width, GLfloat height)
 {
-    LayerColor * layer = new LayerColor();
+    LayerColor * layer = new (std::nothrow) LayerColor();
     if( layer && layer->initWithColor(color,width,height))
     {
         layer->autorelease();
@@ -493,7 +512,7 @@ LayerColor * LayerColor::create(const Color4B& color, GLfloat width, GLfloat hei
 
 LayerColor * LayerColor::create(const Color4B& color)
 {
-    LayerColor * layer = new LayerColor();
+    LayerColor * layer = new (std::nothrow) LayerColor();
     if(layer && layer->initWithColor(color))
     {
         layer->autorelease();
@@ -531,7 +550,7 @@ bool LayerColor::initWithColor(const Color4B& color, GLfloat w, GLfloat h)
         updateColor();
         setContentSize(Size(w, h));
 
-        setShaderProgram(ShaderCache::getInstance()->getProgram(GLProgram::SHADER_NAME_POSITION_COLOR_NO_MVP));
+        setGLProgramState(GLProgramState::getOrCreateWithGLProgramName(GLProgram::SHADER_NAME_POSITION_COLOR_NO_MVP));
         return true;
     }
     return false;
@@ -540,8 +559,7 @@ bool LayerColor::initWithColor(const Color4B& color, GLfloat w, GLfloat h)
 bool LayerColor::initWithColor(const Color4B& color)
 {
     Size s = Director::getInstance()->getWinSize();
-    this->initWithColor(color, s.width, s.height);
-    return true;
+    return initWithColor(color, s.width, s.height);
 }
 
 /// override contentSize
@@ -581,40 +599,35 @@ void LayerColor::updateColor()
     }
 }
 
-void LayerColor::draw(Renderer *renderer, const kmMat4 &transform, bool transformUpdated)
+void LayerColor::draw(Renderer *renderer, const Mat4 &transform, uint32_t flags)
 {
-    _customCommand.init(_globalZOrder);
-    _customCommand.func = CC_CALLBACK_0(LayerColor::onDraw, this, transform, transformUpdated);
+    _customCommand.init(_globalZOrder, transform, flags);
+    _customCommand.func = CC_CALLBACK_0(LayerColor::onDraw, this, transform, flags);
     renderer->addCommand(&_customCommand);
     
     for(int i = 0; i < 4; ++i)
     {
-        kmVec3 pos;
+        Vec4 pos;
         pos.x = _squareVertices[i].x; pos.y = _squareVertices[i].y; pos.z = _positionZ;
-        kmVec3TransformCoord(&pos, &pos, &_modelViewTransform);
-        _noMVPVertices[i] = Vertex3F(pos.x,pos.y,pos.z);
+        pos.w = 1;
+        _modelViewTransform.transformVector(&pos);
+        _noMVPVertices[i] = Vec3(pos.x,pos.y,pos.z)/pos.w;
     }
 }
 
-void LayerColor::onDraw(const kmMat4& transform, bool transformUpdated)
+void LayerColor::onDraw(const Mat4& transform, uint32_t /*flags*/)
 {
-    getShaderProgram()->use();
-    getShaderProgram()->setUniformsForBuiltins(transform);
-
+    getGLProgram()->use();
+    getGLProgram()->setUniformsForBuiltins(transform);
+    
     GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION | GL::VERTEX_ATTRIB_FLAG_COLOR );
+    
     //
     // Attributes
     //
-#ifdef EMSCRIPTEN
-    setGLBufferData(_noMVPVertices, 4 * sizeof(Vertex3F), 0);
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-    setGLBufferData(_squareColors, 4 * sizeof(Color4F), 1);
-    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_COLOR, 4, GL_FLOAT, GL_FALSE, 0, 0);
-#else
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, 0, _noMVPVertices);
     glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_COLOR, 4, GL_FLOAT, GL_FALSE, 0, _squareColors);
-#endif // EMSCRIPTEN
 
     GL::blendFunc( _blendFunc.src, _blendFunc.dst );
 
@@ -627,12 +640,28 @@ std::string LayerColor::getDescription() const
 {
     return StringUtils::format("<LayerColor | Tag = %d>", _tag);
 }
+
 //
 // LayerGradient
-// 
+//
+LayerGradient::LayerGradient()
+: _startColor(Color4B::BLACK)
+, _endColor(Color4B::BLACK)
+, _startOpacity(255)
+, _endOpacity(255)
+, _alongVector(Vec2(0, -1))
+, _compressedInterpolation(true)
+{
+    
+}
+
+LayerGradient::~LayerGradient()
+{
+}
+
 LayerGradient* LayerGradient::create(const Color4B& start, const Color4B& end)
 {
-    LayerGradient * layer = new LayerGradient();
+    LayerGradient * layer = new (std::nothrow) LayerGradient();
     if( layer && layer->initWithColor(start, end))
     {
         layer->autorelease();
@@ -642,9 +671,9 @@ LayerGradient* LayerGradient::create(const Color4B& start, const Color4B& end)
     return nullptr;
 }
 
-LayerGradient* LayerGradient::create(const Color4B& start, const Color4B& end, const Point& v)
+LayerGradient* LayerGradient::create(const Color4B& start, const Color4B& end, const Vec2& v)
 {
-    LayerGradient * layer = new LayerGradient();
+    LayerGradient * layer = new (std::nothrow) LayerGradient();
     if( layer && layer->initWithColor(start, end, v))
     {
         layer->autorelease();
@@ -656,7 +685,7 @@ LayerGradient* LayerGradient::create(const Color4B& start, const Color4B& end, c
 
 LayerGradient* LayerGradient::create()
 {
-    LayerGradient* ret = new LayerGradient();
+    LayerGradient* ret = new (std::nothrow) LayerGradient();
     if (ret && ret->init())
     {
         ret->autorelease();
@@ -670,23 +699,23 @@ LayerGradient* LayerGradient::create()
 
 bool LayerGradient::init()
 {
-	return initWithColor(Color4B(0, 0, 0, 255), Color4B(0, 0, 0, 255));
+    return initWithColor(Color4B(0, 0, 0, 255), Color4B(0, 0, 0, 255));
 }
 
 bool LayerGradient::initWithColor(const Color4B& start, const Color4B& end)
 {
-    return initWithColor(start, end, Point(0, -1));
+    return initWithColor(start, end, Vec2(0, -1));
 }
 
-bool LayerGradient::initWithColor(const Color4B& start, const Color4B& end, const Point& v)
+bool LayerGradient::initWithColor(const Color4B& start, const Color4B& end, const Vec2& v)
 {
     _endColor.r  = end.r;
     _endColor.g  = end.g;
     _endColor.b  = end.b;
 
-    _endOpacity   = end.a;
-    _startOpacity    = start.a;
-    _alongVector   = v;
+    _endOpacity     = end.a;
+    _startOpacity   = start.a;
+    _alongVector    = v;
 
     _compressedInterpolation = true;
 
@@ -702,7 +731,7 @@ void LayerGradient::updateColor()
         return;
 
     float c = sqrtf(2.0f);
-    Point u = Point(_alongVector.x / h, _alongVector.y / h);
+    Vec2 u(_alongVector.x / h, _alongVector.y / h);
 
     // Compressed Interpolation mode
     if (_compressedInterpolation)
@@ -792,13 +821,13 @@ GLubyte LayerGradient::getEndOpacity() const
     return _endOpacity;
 }
 
-void LayerGradient::setVector(const Point& var)
+void LayerGradient::setVector(const Vec2& var)
 {
     _alongVector = var;
     updateColor();
 }
 
-const Point& LayerGradient::getVector() const
+const Vec2& LayerGradient::getVector() const
 {
     return _alongVector;
 }
@@ -819,6 +848,245 @@ std::string LayerGradient::getDescription() const
     return StringUtils::format("<LayerGradient | Tag = %d>", _tag);
 }
 
+/**
+ * LayerRadialGradient
+ */
+LayerRadialGradient* LayerRadialGradient::create(const Color4B& startColor, const Color4B& endColor, float radius, const Vec2& center, float expand)
+{
+    auto layerGradient = new LayerRadialGradient();
+    if (layerGradient && layerGradient->initWithColor(startColor, endColor, radius, center, expand))
+    {
+        layerGradient->autorelease();
+        return layerGradient;
+    }
+    
+    delete layerGradient;
+    return nullptr;
+}
+
+LayerRadialGradient* LayerRadialGradient::create()
+{
+    auto layerGradient = new LayerRadialGradient();
+    if (layerGradient && layerGradient->initWithColor(Color4B::BLACK, Color4B::BLACK, 0, Vec2(0,0), 0))
+    {
+        layerGradient->autorelease();
+        return layerGradient;
+    }
+    
+    delete layerGradient;
+    return nullptr;
+}
+
+LayerRadialGradient::LayerRadialGradient()
+: _startColor(Color4B::BLACK)
+, _startColorRend(Color4F::BLACK)
+, _endColor(Color4B::BLACK)
+, _endColorRend(Color4F::BLACK)
+, _center(Vec2(0,0))
+, _radius(0.f)
+, _expand(0.f)
+, _uniformLocationStartColor(0)
+, _uniformLocationEndColor(0)
+, _uniformLocationCenter(0)
+, _uniformLocationRadius(0)
+, _uniformLocationExpand(0)
+, _blendFunc(BlendFunc::ALPHA_NON_PREMULTIPLIED)
+{ }
+
+LayerRadialGradient::~LayerRadialGradient()
+{}
+
+bool LayerRadialGradient::initWithColor(const cocos2d::Color4B &startColor, const cocos2d::Color4B &endColor, float radius, const Vec2& center, float expand)
+{
+    // should do it before Layer::init()
+    for (int i = 0; i < 4; ++i)
+        _vertices[i] = {0.0f, 0.0f};
+    
+    if (Layer::init())
+    {
+        convertColor4B24F(_startColorRend, startColor);
+        _startColor = startColor;
+        
+        convertColor4B24F(_endColorRend, endColor);
+        _endColor = endColor;
+        
+        _expand = expand;
+        
+        setRadius(radius);
+        setCenter(center);
+        
+        setGLProgramState(GLProgramState::getOrCreateWithGLProgramName(GLProgram::SHADER_LAYER_RADIAL_GRADIENT));
+        auto program = getGLProgram();
+        _uniformLocationStartColor = program->getUniformLocation("u_startColor");
+        _uniformLocationEndColor = program->getUniformLocation("u_endColor");
+        _uniformLocationExpand = program->getUniformLocation("u_expand");
+        _uniformLocationRadius = program->getUniformLocation("u_radius");
+        _uniformLocationCenter = program->getUniformLocation("u_center");
+        
+        return true;
+    }
+    
+    return false;
+}
+
+void LayerRadialGradient::draw(Renderer *renderer, const Mat4 &transform, uint32_t flags)
+{
+    _customCommand.init(_globalZOrder, transform, flags);
+    _customCommand.func = CC_CALLBACK_0(LayerRadialGradient::onDraw, this, transform, flags);
+    renderer->addCommand(&_customCommand);
+}
+
+void LayerRadialGradient::onDraw(const Mat4& transform, uint32_t /*flags*/)
+{
+    auto program = getGLProgram();
+    program->use();
+    program->setUniformsForBuiltins(transform);
+    program->setUniformLocationWith4f(_uniformLocationStartColor, _startColorRend.r,
+                                      _startColorRend.g, _startColorRend.b, _startColorRend.a);
+    program->setUniformLocationWith4f(_uniformLocationEndColor, _endColorRend.r,
+                                      _endColorRend.g, _endColorRend.b, _endColorRend.a);
+    program->setUniformLocationWith2f(_uniformLocationCenter, _center.x, _center.y);
+    program->setUniformLocationWith1f(_uniformLocationRadius, _radius);
+    program->setUniformLocationWith1f(_uniformLocationExpand, _expand);
+    
+    
+    GL::enableVertexAttribs( GL::VERTEX_ATTRIB_FLAG_POSITION);
+    
+    //
+    // Attributes
+    //
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glVertexAttribPointer(GLProgram::VERTEX_ATTRIB_POSITION, 2, GL_FLOAT, GL_FALSE, 0, _vertices);
+    
+    GL::blendFunc(_blendFunc.src, _blendFunc.dst);
+    
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    
+    CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1,4);
+}
+
+void LayerRadialGradient::setContentSize(const Size& size)
+{
+    _vertices[1].x = size.width;
+    _vertices[2].y = size.height;
+    _vertices[3].x = size.width;
+    _vertices[3].y = size.height;
+    Layer::setContentSize(size);
+}
+
+void LayerRadialGradient::setStartOpacity(GLubyte opacity)
+{
+    _startColorRend.a = opacity / 255.0f;
+    _startColor.a = opacity;
+}
+
+GLubyte LayerRadialGradient::getStartOpacity() const
+{
+    return _startColor.a;
+}
+
+void LayerRadialGradient::setEndOpacity(GLubyte opacity)
+{
+    _endColorRend.a = opacity / 255.0f;
+    _endColor.a = opacity;
+}
+
+GLubyte LayerRadialGradient::getEndOpacity() const
+{
+    return _endColor.a;
+}
+
+void LayerRadialGradient::setRadius(float radius)
+{
+    _radius = radius;
+}
+
+float LayerRadialGradient::getRadius() const
+{
+    return _radius;
+}
+
+void LayerRadialGradient::setCenter(const Vec2& center)
+{
+    _center = center;
+}
+
+Vec2 LayerRadialGradient::getCenter() const
+{
+    return _center;
+}
+
+void LayerRadialGradient::setExpand(float expand)
+{
+    _expand = expand;
+}
+
+float LayerRadialGradient::getExpand() const
+{
+    return _expand;
+}
+
+void LayerRadialGradient::setStartColor(const Color3B& color)
+{
+    setStartColor(Color4B(color));
+}
+
+void LayerRadialGradient::setStartColor(const cocos2d::Color4B &color)
+{
+    _startColor = color;
+    convertColor4B24F(_startColorRend, _startColor);
+}
+
+Color4B LayerRadialGradient::getStartColor() const
+{
+    return _startColor;
+}
+
+Color3B LayerRadialGradient::getStartColor3B() const
+{
+    return Color3B(_startColor);
+}
+
+void LayerRadialGradient::setEndColor(const Color3B& color)
+{
+    setEndColor(Color4B(color));
+}
+
+void LayerRadialGradient::setEndColor(const cocos2d::Color4B &color)
+{
+    _endColor = color;
+    convertColor4B24F(_endColorRend, _endColor);
+}
+
+Color4B LayerRadialGradient::getEndColor() const
+{
+    return _endColor;
+}
+
+Color3B LayerRadialGradient::getEndColor3B() const
+{
+    return Color3B(_endColor);
+}
+
+void LayerRadialGradient::setBlendFunc(const BlendFunc& blendFunc)
+{
+    _blendFunc = blendFunc;
+}
+
+BlendFunc LayerRadialGradient::getBlendFunc() const
+{
+    return _blendFunc;
+}
+
+void LayerRadialGradient::convertColor4B24F(Color4F& outColor, const Color4B& inColor)
+{
+    outColor.r = inColor.r / 255.0f;
+    outColor.g = inColor.g / 255.0f;
+    outColor.b = inColor.b / 255.0f;
+    outColor.a = inColor.a / 255.0f;
+}
+
+
 /// MultiplexLayer
 
 LayerMultiplex::LayerMultiplex()
@@ -833,12 +1101,13 @@ LayerMultiplex::~LayerMultiplex()
     }
 }
 
-LayerMultiplex * LayerMultiplex::create(Layer * layer, ...)
+#if (CC_TARGET_PLATFORM == CC_PLATFORM_WINRT)
+LayerMultiplex * LayerMultiplex::createVariadic(Layer * layer, ...)
 {
     va_list args;
     va_start(args,layer);
 
-    LayerMultiplex * multiplexLayer = new LayerMultiplex();
+    LayerMultiplex * multiplexLayer = new (std::nothrow) LayerMultiplex();
     if(multiplexLayer && multiplexLayer->initWithLayers(layer, args))
     {
         multiplexLayer->autorelease();
@@ -849,6 +1118,24 @@ LayerMultiplex * LayerMultiplex::create(Layer * layer, ...)
     CC_SAFE_DELETE(multiplexLayer);
     return nullptr;
 }
+#else
+LayerMultiplex * LayerMultiplex::create(Layer * layer, ...)
+{
+    va_list args;
+    va_start(args,layer);
+
+    LayerMultiplex * multiplexLayer = new (std::nothrow) LayerMultiplex();
+    if(multiplexLayer && multiplexLayer->initWithLayers(layer, args))
+    {
+        multiplexLayer->autorelease();
+        va_end(args);
+        return multiplexLayer;
+    }
+    va_end(args);
+    CC_SAFE_DELETE(multiplexLayer);
+    return nullptr;
+}
+#endif
 
 LayerMultiplex * LayerMultiplex::createWithLayer(Layer* layer)
 {
@@ -857,7 +1144,7 @@ LayerMultiplex * LayerMultiplex::createWithLayer(Layer* layer)
 
 LayerMultiplex* LayerMultiplex::create()
 {
-    LayerMultiplex* ret = new LayerMultiplex();
+    LayerMultiplex* ret = new (std::nothrow) LayerMultiplex();
     if (ret && ret->init())
     {
         ret->autorelease();
@@ -871,7 +1158,7 @@ LayerMultiplex* LayerMultiplex::create()
 
 LayerMultiplex* LayerMultiplex::createWithArray(const Vector<Layer*>& arrayOfLayers)
 {
-    LayerMultiplex* ret = new LayerMultiplex();
+    LayerMultiplex* ret = new (std::nothrow) LayerMultiplex();
     if (ret && ret->initWithArray(arrayOfLayers))
     {
         ret->autorelease();
@@ -885,6 +1172,13 @@ LayerMultiplex* LayerMultiplex::createWithArray(const Vector<Layer*>& arrayOfLay
 
 void LayerMultiplex::addLayer(Layer* layer)
 {
+#if CC_ENABLE_GC_FOR_NATIVE_OBJECTS
+    auto sEngine = ScriptEngineManager::getInstance()->getScriptEngine();
+    if (sEngine)
+    {
+        sEngine->retainScriptObject(this, layer);
+    }
+#endif // CC_ENABLE_GC_FOR_NATIVE_OBJECTS
     _layers.pushBack(layer);
 }
 
@@ -903,10 +1197,23 @@ bool LayerMultiplex::initWithLayers(Layer *layer, va_list params)
     if (Layer::init())
     {
         _layers.reserve(5);
+#if CC_ENABLE_GC_FOR_NATIVE_OBJECTS
+        auto sEngine = ScriptEngineManager::getInstance()->getScriptEngine();
+        if (sEngine)
+        {
+            sEngine->retainScriptObject(this, layer);
+        }
+#endif // CC_ENABLE_GC_FOR_NATIVE_OBJECTS
         _layers.pushBack(layer);
 
         Layer *l = va_arg(params,Layer*);
         while( l ) {
+#if CC_ENABLE_GC_FOR_NATIVE_OBJECTS
+            if (sEngine)
+            {
+                sEngine->retainScriptObject(this, l);
+            }
+#endif // CC_ENABLE_GC_FOR_NATIVE_OBJECTS
             _layers.pushBack(l);
             l = va_arg(params,Layer*);
         }
@@ -923,6 +1230,19 @@ bool LayerMultiplex::initWithArray(const Vector<Layer*>& arrayOfLayers)
 {
     if (Layer::init())
     {
+#if CC_ENABLE_GC_FOR_NATIVE_OBJECTS
+        auto sEngine = ScriptEngineManager::getInstance()->getScriptEngine();
+        if (sEngine)
+        {
+            for (const auto &layer : arrayOfLayers)
+            {
+                if (layer)
+                {
+                    sEngine->retainScriptObject(this, layer);
+                }
+            }
+        }
+#endif // CC_ENABLE_GC_FOR_NATIVE_OBJECTS
         _layers.reserve(arrayOfLayers.size());
         _layers.pushBack(arrayOfLayers);
 
@@ -935,12 +1255,18 @@ bool LayerMultiplex::initWithArray(const Vector<Layer*>& arrayOfLayers)
 
 void LayerMultiplex::switchTo(int n)
 {
+    
+    switchTo(n, true);
+}
+
+void LayerMultiplex::switchTo(int n, bool cleanup)
+{
     CCASSERT( n < _layers.size(), "Invalid index in MultiplexLayer switchTo message" );
-
-    this->removeChild(_layers.at(_enabledLayer), true);
-
+    
+    this->removeChild(_layers.at(_enabledLayer), cleanup);
+    
     _enabledLayer = n;
-
+    
     this->addChild(_layers.at(n));
 }
 
@@ -949,7 +1275,14 @@ void LayerMultiplex::switchToAndReleaseMe(int n)
     CCASSERT( n < _layers.size(), "Invalid index in MultiplexLayer switchTo message" );
 
     this->removeChild(_layers.at(_enabledLayer), true);
-
+#if CC_ENABLE_GC_FOR_NATIVE_OBJECTS
+    auto sEngine = ScriptEngineManager::getInstance()->getScriptEngine();
+    if (sEngine)
+    {
+        sEngine->releaseScriptObject(this, _layers.at(_enabledLayer));
+    }
+#endif // CC_ENABLE_GC_FOR_NATIVE_OBJECTS
+    
     _layers.replace(_enabledLayer, nullptr);
 
     _enabledLayer = n;

@@ -1,5 +1,6 @@
 /****************************************************************************
-Copyright (c) 2013-2014 Chukong Technologies Inc.
+Copyright (c) 2013-2016 Chukong Technologies Inc.
+Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
 http://www.cocos2d-x.org
 
@@ -22,8 +23,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ****************************************************************************/
 
-#include "cocostudio/CCDecorativeDisplay.h"
-#include "CCNode.h"
+#include "editor-support/cocostudio/CCDecorativeDisplay.h"
+#include "2d/CCNode.h"
 
 using namespace cocos2d;
 
@@ -31,7 +32,7 @@ namespace cocostudio {
 
 DecorativeDisplay *DecorativeDisplay::create()
 {
-    DecorativeDisplay *pDisplay = new DecorativeDisplay();
+    DecorativeDisplay *pDisplay = new (std::nothrow) DecorativeDisplay();
     if (pDisplay && pDisplay->init())
     {
         pDisplay->autorelease();

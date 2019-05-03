@@ -1,5 +1,6 @@
 /****************************************************************************
  Copyright (c) 2014 cocos2d-x.org
+ Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
  
  http://www.cocos2d-x.org
  
@@ -25,18 +26,17 @@
 #ifndef __TestCpp__GUIDefine__
 #define __TestCpp__GUIDefine__
 
-#include "cocos2d.h"
-#include "../../extensions/ExtensionMacros.h"
 #include <string>
-#include "cocostudio/ObjectFactory.h"
+#include "base/ObjectFactory.h"
 
-//#pragma mark -
-//#pragma mark Widget macro
-//#pragma mark -
+///@cond DO_NOT_SHOW
+//
+//// Widget macro
+//
 
 #define DECLARE_CLASS_GUI_INFO \
     public: \
-    static cocostudio::ObjectFactory::TInfo Type; \
+    static cocos2d::ObjectFactory::TInfo __Type; \
     static cocos2d::Ref* createInstance(void); \
 
 #define IMPLEMENT_CLASS_GUI_INFO(className) \
@@ -44,19 +44,19 @@
     { \
         return className::create(); \
     } \
-    cocostudio::ObjectFactory::TInfo className::Type(#className, &className::createInstance); \
+    cocos2d::ObjectFactory::TInfo className::__Type(#className, &className::createInstance); \
 
 #define CREATE_CLASS_GUI_INFO(className) \
-    cocostudio::ObjectFactory::TInfo(#className, &className::createInstance) \
+    cocos2d::ObjectFactory::TInfo(#className, &className::createInstance) \
 
 
-//#pragma mark -
-//#pragma mark Reader macro
-//#pragma mark -
+//
+//// Reader macro
+//
 
 #define DECLARE_CLASS_WIDGET_READER_INFO \
     public: \
-    static cocostudio::ObjectFactory::TInfo Type; \
+    static cocos2d::ObjectFactory::TInfo __Type; \
     static cocos2d::Ref* createInstance(void); \
 
 #define IMPLEMENT_CLASS_WIDGET_READER_INFO(className) \
@@ -64,16 +64,14 @@
     { \
         return className::getInstance(); \
     } \
-    cocostudio::ObjectFactory::TInfo className::Type(#className, &className::createInstance); \
+    cocos2d::ObjectFactory::TInfo className::__Type(#className, &className::createInstance); \
 
 #define CREATE_CLASS_WIDGET_READER_INFO(className) \
-    cocostudio::ObjectFactory::TInfo(#className, &className::createInstance) \
+    cocos2d::ObjectFactory::TInfo(#className, &className::createInstance) \
 
+#define CC_VIDEOPLAYER_DEBUG_DRAW  0
 
-
-
-
-//#define CUSTOM_GUI_PARSE_FUNCTION(className, functionName) \
-//    className::functionName \
+#define __LAYOUT_COMPONENT_NAME "__ui_layout"
+///@endcond
 
 #endif /* defined(__TestCpp__GUIDefine__) */

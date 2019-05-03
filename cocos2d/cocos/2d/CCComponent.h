@@ -1,5 +1,6 @@
 /****************************************************************************
-Copyright (c) 2013-2014 Chukong Technologies Inc.
+Copyright (c) 2013-2016 Chukong Technologies Inc.
+Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
 http://www.cocos2d-x.org
 
@@ -25,55 +26,70 @@ THE SOFTWARE.
 #ifndef __CC_FRAMEWORK_COMPONENT_H__
 #define __CC_FRAMEWORK_COMPONENT_H__
 
-#include "CCRef.h"
+/// @cond DO_NOT_SHOW
 #include <string>
+#include "base/CCRef.h"
+#include "base/CCScriptSupport.h"
 
 NS_CC_BEGIN
 
 class Node;
 
+enum {
+    kComponentOnEnter,
+    kComponentOnExit,
+    kComponentOnAdd,
+    kComponentOnRemove,
+    kComponentOnUpdate
+};
+
 class CC_DLL Component : public Ref
 {
-protected:
-    /**
-     * @js ctor
-     */
-    Component(void);
 public:
+    static Component* create();
+
     /**
      * @js NA
      * @lua NA
      */
-    virtual ~Component(void);
+    virtual ~Component();
+
     virtual bool init();
-    /**
-     * @js NA
-     * @lua NA
-     */
-    virtual void onEnter();
-    /**
-     * @js NA
-     * @lua NA
-     */
-    virtual void onExit();
+
+    bool isEnabled() const { return _enabled; }
+    virtual void setEnabled(bool enabled);
+    
+    const std::string& getName() const { return _name; }
+    virtual void setName(const std::string& name) { _name = name; }
+    
+    Node* getOwner() const { return _owner; }
+    virtual void setOwner(Node *owner);
+
     virtual void update(float delta);
     virtual bool serialize(void* r);
-    virtual bool isEnabled() const;
-    virtual void setEnabled(bool b);
-    static Component* create(void);
-    
-    const std::string& getName() const;
-    void setName(const std::string& name);
-    
-    void setOwner(Node *pOwner);
-    Node* getOwner() const;
-    
+
+    virtual void onEnter();
+    virtual void onExit();
+    virtual void onAdd();
+    virtual void onRemove();
+
+CC_CONSTRUCTOR_ACCESS:
+    /**
+    * @js ctor
+    */
+    Component();
+
 protected:
-    Node *_owner;
+    Node* _owner;
     std::string _name;
     bool _enabled;
+    
+#if CC_ENABLE_SCRIPT_BINDING
+    ccScriptType _scriptType;         ///< type of script binding, lua or javascript
+#endif
 };
 
 NS_CC_END
 
-#endif  // __FUNDATION__CCCOMPONENT_H__
+/// @endcond
+#endif  // __CC_FRAMEWORK_COMPONENT_H__
